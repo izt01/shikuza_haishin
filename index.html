@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配信ポータル</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1e;
+    --surface2: #242428;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0ede8;
+    --text2: #9997a0;
+    --accent: #c9a84c;
+    --accent2: #e8c96d;
+    --red: #e05252;
+    --green: #52c47a;
+    --blue: #5b9cf6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #viewerPage {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header-strip {
+    background: linear-gradient(135deg, #1a1410 0%, #12100e 100%);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    padding: 24px 40px 20px;
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(224,82,82,0.15);
+    border: 1px solid rgba(224,82,82,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .stream-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    color: var(--accent2);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .period-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .period-label {
+    font-size: 12px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .period-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .status-banner {
+    margin: 16px 40px 0;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-banner.waiting {
+    background: rgba(91,156,246,0.1);
+    border: 1px solid rgba(91,156,246,0.25);
+    color: var(--blue);
+  }
+
+  .status-banner.live {
+    background: rgba(82,196,122,0.1);
+    border: 1px solid rgba(82,196,122,0.25);
+    color: var(--green);
+  }
+
+  .status-banner.ended {
+    background: rgba(153,151,160,0.1);
+    border: 1px solid rgba(153,151,160,0.2);
+    color: var(--text2);
+  }
+
+  .video-area {
+    flex: 1;
+    padding: 20px 40px 12px;
+  }
+
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-top: min(56.25%, 540px);
+    background: #050505;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border2);
+  }
+
+  .video-wrapper iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: var(--text2);
+  }
+
+  .big-icon { font-size: 56px; color: rgba(201,168,76,0.3); }
+
+  .bottom-area {
+    padding: 16px 40px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .update-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px;
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 10px;
+    color: var(--accent2);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .update-btn:hover { background: rgba(201,168,76,0.22); border-color: var(--accent); }
+  .update-btn:active { transform: scale(0.98); }
+
+  .next-period {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .next-label { color: var(--text2); white-space: nowrap; }
+  .next-value { color: var(--text); font-weight: 500; }
+
+  .notice-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .admin-link {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(153,151,160,0.4);
+    cursor: pointer;
+    padding: 6px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .admin-link:hover { color: var(--text2); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal.wide { max-width: 520px; }
+
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .field-group { margin-bottom: 16px; }
+
+  .field-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    display: block;
+    line-height: 1.5;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field-input:focus { border-color: var(--accent); }
+  .field-input::placeholder { color: var(--text2); }
+
+  textarea.field-input {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .toggle-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  .toggle-text { font-size: 14px; color: var(--text); }
+
+  .sub-field {
+    margin-top: 8px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(201,168,76,0.3);
+    display: none;
+  }
+
+  .sub-field.visible { display: block; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover { background: var(--accent2); }
+
+  .btn-secondary {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--red);
+    margin-top: 6px;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+
+  .save-msg {
+    font-size: 13px;
+    color: var(--green);
+    margin-top: 8px;
+    text-align: center;
+    display: none;
+  }
+
+  .save-msg.show { display: block; }
+
+  .section-sep { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .section-head { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 12px; }
+
+  @media (max-width: 600px) {
+    .header-strip, .video-area, .status-banner { padding-left: 20px; padding-right: 20px; }
+    .status-banner { margin-left: 20px; margin-right: 20px; }
+    .bottom-area { padding-left: 20px; padding-right: 20px; }
+    .stream-title { font-size: 22px; }
+    .modal { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 視聴者ログインモーダル -->
+<div class="modal-overlay" id="loginOverlay">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="ti ti-lock"></i>
+      <span>視聴ページへ入室</span>
+    </div>
+    <div id="nameFieldWrap" class="field-group" style="display:none">
+      <label class="field-label">お名前</label>
+      <input class="field-input" id="loginName" type="text" placeholder="名前を入力してください" />
+    </div>
+    <div id="passFieldWrap" class="field-group" style="display:none">
+      <label class="field-label">パスワード</label>
+      <input class="field-input" id="loginPass" type="password" placeholder="パスワードを入力してください" />
+    </div>
+    <div class="error-msg" id="loginError">パスワードが正しくありません</div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="submitLogin()">入室する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者認証モーダル -->
+<div class="modal-overlay" id="adminAuthOverlay">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="ti ti-shield-lock"></i> 管理者認証
+    </div>
+    <div class="field-group">
+      <label class="field-label">管理者パスワード</label>
+      <input class="field-input" id="adminAuthPass" type="password" placeholder="管理者パスワード" />
+      <div class="error-msg" id="adminAuthError">パスワードが正しくありません</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeAdminAuth()">キャンセル</button>
+      <button class="btn-primary" onclick="submitAdminAuth()">認証</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者設定モーダル -->
+<div class="modal-overlay" id="adminOverlay">
+  <div class="modal wide">
+    <div class="modal-title">
+      <i class="ti ti-settings"></i> 管理者設定
+    </div>
+
+    <div class="section-head">配信情報</div>
+
+    <div class="field-group">
+      <label class="field-label">配信タイトル</label>
+      <input class="field-input" id="adminTitle" type="text" placeholder="例：月例トーク #12" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">YouTube 動画URL<br>（例：https://youtu.be/xxxxx または https://www.youtube.com/watch?v=xxxxx）</label>
+      <input class="field-input" id="adminYtUrl" type="text" placeholder="https://youtu.be/..." />
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">今回の公開期間（日本時間）</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field-group">
+        <label class="field-label">開始日時</label>
+        <input class="field-input" id="adminStart" type="datetime-local" step="1" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">終了日時</label>
+        <input class="field-input" id="adminEnd" type="datetime-local" step="1" />
+      </div>
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">次回の公開期間（任意）</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field-group">
+        <label class="field-label">次回 開始</label>
+        <input class="field-input" id="adminNextStart" type="datetime-local" step="1" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">次回 終了</label>
+        <input class="field-input" id="adminNextEnd" type="datetime-local" step="1" />
+      </div>
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">アクセス制限</div>
+
+    <div class="field-group">
+      <label class="toggle-row">
+        <input type="checkbox" id="adminPassEnabled" onchange="toggleAdminSub('adminPassEnabled','adminPassSub')">
+        <span class="toggle-text">パスワードを設定する</span>
+      </label>
+      <div class="sub-field" id="adminPassSub">
+        <input class="field-input" id="adminViewPass" type="text" placeholder="視聴者用パスワード" style="margin-top:8px" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="toggle-row">
+        <input type="checkbox" id="adminNameEnabled" onchange="toggleAdminSub('adminNameEnabled','adminNameSub')">
+        <span class="toggle-text">名前入力欄を表示する</span>
+      </label>
+      <div class="sub-field" id="adminNameSub">
+        <p style="font-size:12px;color:var(--text2);padding-top:8px">入室時にお名前を入力させます（記録はされません）</p>
+      </div>
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">お知らせ（任意）</div>
+    <div class="field-group">
+      <textarea class="field-input" id="adminNotice" placeholder="注意事項や連絡事項など…" rows="3"></textarea>
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">管理者パスワード変更（任意）</div>
+    <div class="field-group">
+      <input class="field-input" id="adminNewPass" type="password" placeholder="新しい管理者パスワード（変更する場合のみ）" />
+    </div>
+
+    <div class="save-msg" id="saveMsg">✓ 設定を保存しました</div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeAdmin()">閉じる</button>
+      <button class="btn-primary" onclick="saveAdmin()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- メイン視聴ページ -->
+<div id="viewerPage" style="display:none">
+
+  <div class="header-strip">
+    <div class="live-badge"><div class="live-dot" id="liveDot"></div><span id="statusBadgeText">LIVE</span></div>
+    <div class="stream-title" id="streamTitle">配信タイトル</div>
+    <div class="period-row" id="periodRow">
+      <span class="period-label">公開期間</span>
+      <span class="period-value" id="periodDisplay">—</span>
+    </div>
+  </div>
+
+  <div id="statusBanner" class="status-banner waiting">
+    <i class="ti ti-clock"></i>
+    <span id="statusText">配信開始まで少々お待ちください</span>
+  </div>
+
+  <div class="video-area">
+    <div class="video-wrapper" id="videoWrapper">
+      <div class="video-placeholder" id="videoPlaceholder">
+        <i class="ti ti-player-play big-icon"></i>
+        <span style="font-size:15px">配信が始まると動画が表示されます</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-area">
+    <button class="update-btn" onclick="refreshStream()">
+      <i class="ti ti-refresh"></i>
+      <span id="updateBtnText">更新（接続が悪ければこちらを押して下さい）</span>
+    </button>
+
+    <div class="next-period" id="nextPeriodBox" style="display:none">
+      <i class="ti ti-calendar" style="color:var(--accent);font-size:18px"></i>
+      <span class="next-label">次回配信</span>
+      <span class="next-value" id="nextPeriodDisplay">—</span>
+    </div>
+
+    <div class="notice-box" id="noticeBox" style="display:none"></div>
+
+    <div class="admin-link" onclick="openAdminAuth()">管理者ページへ</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  ★ RailwayにデプロイしたAPIのURLをここに設定してください ★
+//  例: const API_BASE = 'https://stream-api-production.up.railway.app';
+// ============================================================
+const API_BASE = 'shikuzahaishin-production.up.railway.app';
+
+let viewerLoggedIn = false;
+let cachedConfig   = null; // APIから取得した設定を一時保持
+let cachedAdminPass = '';  // 管理者認証済みパスワードを一時保持
+
+/* ---- API呼び出し共通 ---- */
+async function apiFetch(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return res;
+}
+
+/* ---- YouTube ID 抽出 ---- */
+function extractVideoId(url) {
+  if (!url) return null;
+  url = url.trim();
+  let m;
+  m = url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);   if (m) return m[1];
+  m = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);         if (m) return m[1];
+  m = url.match(/\/live\/([A-Za-z0-9_-]{11})/);       if (m) return m[1];
+  m = url.match(/\/embed\/([A-Za-z0-9_-]{11})/);      if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;
+  return null;
+}
+
+/* ---- 日時フォーマット ---- */
+function fmtDT(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('ja-JP', {
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit',
+    timeZone:'Asia/Tokyo'
+  });
+}
+function fmtRange(s, e) {
+  if (!s && !e) return '未設定';
+  return fmtDT(s) + ' 〜 ' + fmtDT(e);
+}
+
+/* datetime-local <-> ISO 変換（JST） */
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const pad = n => String(n).padStart(2,'0');
+  const jst = new Date(new Date(iso).getTime() + 9*3600*1000);
+  return `${jst.getUTCFullYear()}-${pad(jst.getUTCMonth()+1)}-${pad(jst.getUTCDate())}T${pad(jst.getUTCHours())}:${pad(jst.getUTCMinutes())}:${pad(jst.getUTCSeconds())}`;
+}
+function fromLocalInput(val) {
+  if (!val) return null;
+  const base = val.length === 16 ? val + ':00' : val;
+  return new Date(base + '+09:00').toISOString();
+}
+
+/* ---- APIフィールド名 -> JS名 変換 ---- */
+function normalizeConfig(row) {
+  return {
+    title:       row.title       || '',
+    ytUrl:       row.yt_url      || '',
+    startTime:   row.start_time  || null,
+    endTime:     row.end_time    || null,
+    nextStart:   row.next_start  || null,
+    nextEnd:     row.next_end    || null,
+    passEnabled: !!row.pass_enabled,
+    viewPass:    row.view_pass   || '',
+    nameEnabled: !!row.name_enabled,
+    notice:      row.notice      || '',
+  };
+}
+
+/* ---- 初期化 ---- */
+async function init() {
+  try {
+    const res = await apiFetch('/api/config');
+    const row = await res.json();
+    cachedConfig = normalizeConfig(row);
+  } catch(e) {
+    cachedConfig = {};
+  }
+
+  const needAuth = (cachedConfig.passEnabled) || cachedConfig.nameEnabled;
+  if (!viewerLoggedIn && needAuth) {
+    showLoginModal(cachedConfig);
+    return;
+  }
+  showViewer(cachedConfig);
+}
+
+function showLoginModal(cfg) {
+  document.getElementById('nameFieldWrap').style.display = cfg.nameEnabled ? 'block' : 'none';
+  document.getElementById('passFieldWrap').style.display = cfg.passEnabled ? 'block' : 'none';
+  document.getElementById('loginOverlay').classList.add('open');
+}
+
+async function submitLogin() {
+  const err = document.getElementById('loginError');
+  err.classList.remove('show');
+  const password = document.getElementById('loginPass').value;
+
+  try {
+    const res = await apiFetch('/api/auth', { password });
+    const json = await res.json();
+    if (!json.ok) { err.classList.add('show'); return; }
+  } catch(e) {
+    err.textContent = '通信エラーが発生しました'; err.classList.add('show'); return;
+  }
+
+  viewerLoggedIn = true;
+  document.getElementById('loginOverlay').classList.remove('open');
+  showViewer(cachedConfig);
+}
+
+function showViewer(cfg) {
+  document.getElementById('viewerPage').style.display = 'flex';
+  renderViewer(cfg);
+}
+
+/* ---- レンダリング ---- */
+function renderViewer(cfg) {
+  cfg = cfg || {};
+
+  // タイトル
+  const titleEl = document.getElementById('streamTitle');
+  if (cfg.title && cfg.title.trim()) {
+    titleEl.textContent = cfg.title;
+    titleEl.style.display = '';
+  } else {
+    titleEl.style.display = 'none';
+  }
+
+  // 公開期間
+  const periodRow = document.getElementById('periodRow');
+  if (cfg.startTime || cfg.endTime) {
+    periodRow.style.display = 'flex';
+    document.getElementById('periodDisplay').textContent = fmtRange(cfg.startTime, cfg.endTime);
+  } else {
+    periodRow.style.display = 'none';
+  }
+
+  // 次回配信
+  const nextBox = document.getElementById('nextPeriodBox');
+  if (cfg.nextStart || cfg.nextEnd) {
+    nextBox.style.display = 'flex';
+    document.getElementById('nextPeriodDisplay').textContent = fmtRange(cfg.nextStart, cfg.nextEnd);
+  } else {
+    nextBox.style.display = 'none';
+  }
+
+  // お知らせ
+  const noticeBox = document.getElementById('noticeBox');
+  if (cfg.notice && cfg.notice.trim()) {
+    noticeBox.style.display = 'block';
+    noticeBox.textContent = cfg.notice;
+  } else {
+    noticeBox.style.display = 'none';
+  }
+
+  updateStreamStatus(cfg);
+}
+
+function updateStreamStatus(cfg) {
+  cfg = cfg || {};
+  const now    = new Date();
+  const start  = cfg.startTime ? new Date(cfg.startTime) : null;
+  const end    = cfg.endTime   ? new Date(cfg.endTime)   : null;
+  const banner = document.getElementById('statusBanner');
+  const dot    = document.getElementById('liveDot');
+
+  if (start && end) {
+    banner.style.display = 'flex';
+    if (now < start) {
+      const diff = Math.round((start - now) / 60000);
+      banner.className = 'status-banner waiting';
+      document.getElementById('statusText').textContent = `配信開始まであと約 ${diff} 分`;
+      document.getElementById('statusBadgeText').textContent = 'WAITING';
+      dot.style.background = 'var(--blue)';
+    } else if (now <= end) {
+      banner.className = 'status-banner live';
+      document.getElementById('statusText').textContent = '🔴 現在配信中です！';
+      document.getElementById('statusBadgeText').textContent = 'LIVE';
+      dot.style.background = 'var(--red)';
+    } else {
+      banner.className = 'status-banner ended';
+      document.getElementById('statusText').textContent = '配信は終了しました';
+      document.getElementById('statusBadgeText').textContent = 'ENDED';
+      dot.style.background = 'var(--text2)';
+    }
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const videoId = extractVideoId(cfg.ytUrl);
+  const wrapper = document.getElementById('videoWrapper');
+  if (videoId) {
+    const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+    let iframe = wrapper.querySelector('iframe');
+    if (!iframe) {
+      document.getElementById('videoPlaceholder').style.display = 'none';
+      iframe = document.createElement('iframe');
+      iframe.allowFullscreen = true;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      wrapper.appendChild(iframe);
+    }
+    if (iframe.src !== src) iframe.src = src;
+  } else {
+    const iframe = wrapper.querySelector('iframe');
+    if (iframe) iframe.remove();
+    document.getElementById('videoPlaceholder').style.display = 'flex';
+  }
+}
+
+/* ---- 更新ボタン：APIから最新取得 ---- */
+async function refreshStream() {
+  const btn = document.getElementById('updateBtnText');
+  btn.textContent = '取得中...';
+  try {
+    const res = await apiFetch('/api/config');
+    const row = await res.json();
+    cachedConfig = normalizeConfig(row);
+    renderViewer(cachedConfig);
+    btn.textContent = '更新しました ✓';
+  } catch(e) {
+    btn.textContent = '通信エラー';
+  }
+  setTimeout(() => { btn.textContent = '更新（接続が悪ければこちらを押して下さい）'; }, 2500);
+}
+
+/* ---- 管理者認証 ---- */
+function openAdminAuth() {
+  document.getElementById('adminAuthPass').value = '';
+  document.getElementById('adminAuthError').classList.remove('show');
+  document.getElementById('adminAuthOverlay').classList.add('open');
+}
+function closeAdminAuth() {
+  document.getElementById('adminAuthOverlay').classList.remove('open');
+}
+async function submitAdminAuth() {
+  const pass = document.getElementById('adminAuthPass').value;
+  const errEl = document.getElementById('adminAuthError');
+  errEl.classList.remove('show');
+  try {
+    const res  = await apiFetch('/api/admin/get', { adminPass: pass });
+    const json = await res.json();
+    if (res.status === 401) {
+      errEl.textContent = json.error || '管理者パスワードが正しくありません';
+      errEl.classList.add('show'); return;
+    }
+    cachedAdminPass = pass;
+    closeAdminAuth();
+    openAdminPanel(normalizeConfig(json), json);
+  } catch(e) {
+    errEl.textContent = '通信エラーが発生しました'; errEl.classList.add('show');
+  }
+}
+
+/* ---- 管理者パネル ---- */
+function openAdminPanel(cfg, raw) {
+  document.getElementById('adminTitle').value         = cfg.title       || '';
+  document.getElementById('adminYtUrl').value         = cfg.ytUrl       || '';
+  document.getElementById('adminStart').value         = toLocalInput(cfg.startTime);
+  document.getElementById('adminEnd').value           = toLocalInput(cfg.endTime);
+  document.getElementById('adminNextStart').value     = toLocalInput(cfg.nextStart);
+  document.getElementById('adminNextEnd').value       = toLocalInput(cfg.nextEnd);
+  document.getElementById('adminPassEnabled').checked = cfg.passEnabled;
+  document.getElementById('adminViewPass').value      = cfg.viewPass    || '';
+  document.getElementById('adminNameEnabled').checked = cfg.nameEnabled;
+  document.getElementById('adminNotice').value        = cfg.notice      || '';
+  document.getElementById('adminNewPass').value       = '';
+  toggleAdminSub('adminPassEnabled','adminPassSub');
+  toggleAdminSub('adminNameEnabled','adminNameSub');
+  document.getElementById('saveMsg').classList.remove('show');
+  document.getElementById('adminOverlay').classList.add('open');
+}
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('open');
+}
+function toggleAdminSub(checkId, subId) {
+  document.getElementById(subId).classList.toggle('visible', document.getElementById(checkId).checked);
+}
+async function saveAdmin() {
+  const saveBtn = document.querySelector('#adminOverlay .btn-primary');
+  const saveMsgEl = document.getElementById('saveMsg');
+  saveMsgEl.classList.remove('show');
+  saveBtn.textContent = '保存中...';
+
+  const payload = {
+    adminPass:   cachedAdminPass,
+    title:       document.getElementById('adminTitle').value.trim(),
+    ytUrl:       document.getElementById('adminYtUrl').value.trim(),
+    startTime:   fromLocalInput(document.getElementById('adminStart').value),
+    endTime:     fromLocalInput(document.getElementById('adminEnd').value),
+    nextStart:   fromLocalInput(document.getElementById('adminNextStart').value),
+    nextEnd:     fromLocalInput(document.getElementById('adminNextEnd').value),
+    passEnabled: document.getElementById('adminPassEnabled').checked,
+    viewPass:    document.getElementById('adminViewPass').value,
+    nameEnabled: document.getElementById('adminNameEnabled').checked,
+    notice:      document.getElementById('adminNotice').value.trim(),
+    newAdminPass: document.getElementById('adminNewPass').value,
+  };
+
+  try {
+    const res  = await apiFetch('/api/admin/save', payload);
+    const json = await res.json();
+    if (json.ok) {
+      if (payload.newAdminPass) cachedAdminPass = payload.newAdminPass;
+      saveMsgEl.classList.add('show');
+      cachedConfig = normalizeConfig(payload);
+      renderViewer(cachedConfig);
+    } else {
+      saveMsgEl.textContent = json.error || '保存に失敗しました';
+      saveMsgEl.style.color = 'var(--red)';
+      saveMsgEl.classList.add('show');
+    }
+  } catch(e) {
+    saveMsgEl.textContent = '通信エラーが発生しました';
+    saveMsgEl.style.color = 'var(--red)';
+    saveMsgEl.classList.add('show');
+  }
+  saveBtn.textContent = '保存する';
+}
+
+/* ---- 定期更新（1分ごと） ---- */
+setInterval(async () => {
+  try {
+    const res = await apiFetch('/api/config');
+    const row = await res.json();
+    cachedConfig = normalizeConfig(row);
+    updateStreamStatus(cachedConfig);
+  } catch(e) {}
+}, 60000);
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
