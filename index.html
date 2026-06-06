@@ -263,6 +263,112 @@
 
   .modal.wide { max-width: 520px; }
 
+  /* 管理者モーダルは白テーマ */
+  .modal.admin-modal {
+    background: #ffffff;
+    border: 1px solid #e0ddd8;
+    color: #1a1a1e;
+  }
+
+  .admin-modal .modal-title {
+    color: #1a1410;
+    border-bottom: 2px solid #f0ede8;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+
+  .admin-modal .field-label { color: #666; }
+
+  .admin-modal .field-input {
+    background: #f8f7f5;
+    border: 1px solid #ddd;
+    color: #1a1a1e;
+  }
+
+  .admin-modal .field-input:focus { border-color: var(--accent); }
+  .admin-modal .field-input::placeholder { color: #aaa; }
+
+  .admin-modal .toggle-row {
+    background: #f8f7f5;
+    border: 1px solid #e8e5e0;
+  }
+
+  .admin-modal .toggle-text { color: #1a1a1e; }
+
+  .admin-modal .sub-field { border-left-color: rgba(201,168,76,0.5); }
+
+  .admin-modal .section-sep { border-top-color: #ece9e4; }
+  .admin-modal .section-head { color: #999; }
+
+  .admin-modal .btn-secondary {
+    border-color: #ccc;
+    color: #666;
+  }
+
+  .admin-modal .btn-secondary:hover { background: #f0ede8; color: #333; }
+
+  /* 統計エリア */
+  .stats-box {
+    background: #f8f7f5;
+    border: 1px solid #e8e5e0;
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .stats-count {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stats-count-label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 14px;
+  }
+
+  .stats-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .name-tag {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #444;
+  }
+
+  .stats-empty {
+    font-size: 13px;
+    color: #aaa;
+  }
+
+  .stats-load-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: #666;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+
+  .stats-load-btn:hover { background: #f0ede8; border-color: var(--accent); color: var(--accent); }
+
   .modal-title {
     font-size: 17px;
     font-weight: 700;
@@ -440,11 +546,37 @@
 
 <!-- 管理者設定モーダル -->
 <div class="modal-overlay" id="adminOverlay">
-  <div class="modal wide">
+  <div class="modal wide admin-modal">
     <div class="modal-title">
       <i class="ti ti-settings"></i> 管理者設定
     </div>
 
+    <div class="section-head">ログイン統計</div>
+    <div class="stats-box">
+      <button class="stats-load-btn" onclick="loadStats()">
+        <i class="ti ti-refresh"></i> 今回の期間のデータを取得
+      </button>
+      <div id="statsContent" style="display:none">
+        <div class="stats-count" id="statsCount">0</div>
+        <div class="stats-count-label">ログイン数</div>
+        <div class="stats-names" id="statsNames"></div>
+      </div>
+      <div class="stats-empty" id="statsEmpty" style="display:none">データがありません</div>
+    </div>
+
+    <hr class="section-sep">
+    <div class="section-head">即時公開コントロール</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f7f5;border:1px solid #e8e5e0;border-radius:10px;padding:14px 16px">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:#1a1a1e">公開ON / OFF</div>
+        <div style="font-size:12px;color:#999;margin-top:2px">ONにすると期間に関わらず即時公開</div>
+      </div>
+      <button id="togglePublicBtn" onclick="togglePublic()" style="min-width:80px;padding:9px 18px;border-radius:8px;border:none;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all 0.2s">
+        —
+      </button>
+    </div>
+
+    <hr class="section-sep">
     <div class="section-head">配信情報</div>
 
     <div class="field-group">
@@ -647,6 +779,7 @@ function normalizeConfig(row) {
     viewPass:    row.view_pass   || '',
     nameEnabled: !!row.name_enabled,
     notice:      row.notice      || '',
+    isPublic:    !!row.is_public,
   };
 }
 
@@ -678,9 +811,10 @@ async function submitLogin() {
   const err = document.getElementById('loginError');
   err.classList.remove('show');
   const password = document.getElementById('loginPass').value;
+  const name     = document.getElementById('loginName').value;
 
   try {
-    const res = await apiFetch('/api/auth', { password });
+    const res = await apiFetch('/api/auth', { password, name });
     const json = await res.json();
     if (!json.ok) { err.classList.add('show'); return; }
   } catch(e) {
@@ -748,15 +882,31 @@ function updateStreamStatus(cfg) {
   const banner = document.getElementById('statusBanner');
   const dot    = document.getElementById('liveDot');
 
-  if (start && end) {
+  // 公開中かどうか（即時OFFが優先、次に期間判定）
+  let isLive = false;
+  let phase  = 'none'; // 'waiting' | 'live' | 'ended' | 'none'
+
+  if (cfg.isPublic) {
+    // 即時ONなら強制LIVE
+    isLive = true;
+    phase  = 'live';
+  } else if (start && end) {
+    if (now < start)      phase = 'waiting';
+    else if (now <= end)  { phase = 'live'; isLive = true; }
+    else                  phase = 'ended';
+  }
+
+  if (phase === 'none') {
+    banner.style.display = 'none';
+  } else {
     banner.style.display = 'flex';
-    if (now < start) {
+    if (phase === 'waiting') {
       const diff = Math.round((start - now) / 60000);
       banner.className = 'status-banner waiting';
       document.getElementById('statusText').textContent = `配信開始まであと約 ${diff} 分`;
       document.getElementById('statusBadgeText').textContent = 'WAITING';
       dot.style.background = 'var(--blue)';
-    } else if (now <= end) {
+    } else if (phase === 'live') {
       banner.className = 'status-banner live';
       document.getElementById('statusText').textContent = '🔴 現在配信中です！';
       document.getElementById('statusBadgeText').textContent = 'LIVE';
@@ -767,17 +917,18 @@ function updateStreamStatus(cfg) {
       document.getElementById('statusBadgeText').textContent = 'ENDED';
       dot.style.background = 'var(--text2)';
     }
-  } else {
-    banner.style.display = 'none';
   }
 
+  // 動画表示：公開中のみiframeを表示、終了・未開始は非表示
   const videoId = extractVideoId(cfg.ytUrl);
   const wrapper = document.getElementById('videoWrapper');
-  if (videoId) {
+  const placeholder = document.getElementById('videoPlaceholder');
+
+  if (videoId && isLive) {
     const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
     let iframe = wrapper.querySelector('iframe');
     if (!iframe) {
-      document.getElementById('videoPlaceholder').style.display = 'none';
+      placeholder.style.display = 'none';
       iframe = document.createElement('iframe');
       iframe.allowFullscreen = true;
       iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
@@ -787,7 +938,7 @@ function updateStreamStatus(cfg) {
   } else {
     const iframe = wrapper.querySelector('iframe');
     if (iframe) iframe.remove();
-    document.getElementById('videoPlaceholder').style.display = 'flex';
+    placeholder.style.display = 'flex';
   }
 }
 
@@ -851,6 +1002,7 @@ function openAdminPanel(cfg, raw) {
   toggleAdminSub('adminPassEnabled','adminPassSub');
   toggleAdminSub('adminNameEnabled','adminNameSub');
   document.getElementById('saveMsg').classList.remove('show');
+  setToggleBtn(cfg.isPublic);
   document.getElementById('adminOverlay').classList.add('open');
 }
 function closeAdmin() {
@@ -878,6 +1030,7 @@ async function saveAdmin() {
     nameEnabled: document.getElementById('adminNameEnabled').checked,
     notice:      document.getElementById('adminNotice').value.trim(),
     newAdminPass: document.getElementById('adminNewPass').value,
+    isPublic:    cachedConfig.isPublic,
   };
 
   try {
@@ -899,6 +1052,79 @@ async function saveAdmin() {
     saveMsgEl.classList.add('show');
   }
   saveBtn.textContent = '保存する';
+}
+
+function setToggleBtn(isPublic) {
+  const btn = document.getElementById('togglePublicBtn');
+  if (isPublic) {
+    btn.textContent = '公開中 ON';
+    btn.style.background = '#52c47a';
+    btn.style.color = '#fff';
+  } else {
+    btn.textContent = 'OFF';
+    btn.style.background = '#e8e5e0';
+    btn.style.color = '#666';
+  }
+}
+
+async function togglePublic() {
+  const btn = document.getElementById('togglePublicBtn');
+  const newState = !(cachedConfig.isPublic);
+  btn.textContent = '更新中...';
+  btn.style.background = '#ddd';
+  try {
+    const res  = await apiFetch('/api/admin/toggle-public', { adminPass: cachedAdminPass, isPublic: newState });
+    const json = await res.json();
+    if (json.ok) {
+      cachedConfig.isPublic = newState;
+      setToggleBtn(newState);
+      updateStreamStatus(cachedConfig);
+    } else {
+      setToggleBtn(cachedConfig.isPublic);
+    }
+  } catch(e) {
+    setToggleBtn(cachedConfig.isPublic);
+  }
+}
+
+/* ---- 統計取得 ---- */
+async function loadStats() {
+  const contentEl = document.getElementById('statsContent');
+  const emptyEl   = document.getElementById('statsEmpty');
+  const countEl   = document.getElementById('statsCount');
+  const namesEl   = document.getElementById('statsNames');
+  contentEl.style.display = 'none';
+  emptyEl.style.display   = 'none';
+
+  try {
+    const res  = await apiFetch('/api/admin/stats', {
+      adminPass: cachedAdminPass,
+      startTime: cachedConfig.startTime,
+      endTime:   cachedConfig.endTime,
+    });
+    const json = await res.json();
+    if (!json.logs || json.logs.length === 0) {
+      emptyEl.style.display = 'block'; return;
+    }
+    countEl.textContent = json.total;
+    namesEl.innerHTML = '';
+    // 名前ありのみ表示（重複除去）
+    const names = [...new Set(json.logs.map(l => l.name).filter(Boolean))];
+    if (names.length > 0) {
+      names.forEach(n => {
+        const tag = document.createElement('span');
+        tag.className = 'name-tag';
+        tag.textContent = n;
+        namesEl.appendChild(tag);
+      });
+    } else {
+      namesEl.innerHTML = '<span style="font-size:12px;color:#aaa">名前の記録なし</span>';
+    }
+    contentEl.style.display = 'block';
+  } catch(e) {
+    emptyEl.textContent = '取得エラー';
+    emptyEl.style.display = 'block';
+  }
 }
 
 /* ---- 定期更新（1分ごと） ---- */
