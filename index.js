@@ -54,7 +54,7 @@ async function initDB() {
   console.log('DB initialized');
 }
 
-// 視聴者向け：公開情報取得
+// 視聴者向け：公開情報取得（サーバー側で公開状態を計算して返す）
 app.get('/api/config', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -62,7 +62,18 @@ app.get('/api/config', async (req, res) => {
               pass_enabled, name_enabled, notice, is_public, updated_at
        FROM stream_config WHERE id = 1`
     );
-    res.json(rows[0] || {});
+    const row = rows[0];
+    if (!row) return res.json({});
+
+    const now = new Date();
+    const start = row.start_time ? new Date(row.start_time) : null;
+    const end   = row.end_time   ? new Date(row.end_time)   : null;
+
+    // 即時ONか、期間内なら公開中
+    const isLive = row.is_public ||
+      (start && end && now >= start && now <= end);
+
+    res.json({ ...row, is_live: isLive });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'DB error' });

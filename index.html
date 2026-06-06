@@ -183,6 +183,7 @@ function normalizeConfig(row) {
     passEnabled: !!row.pass_enabled, viewPass: row.view_pass||'',
     nameEnabled: !!row.name_enabled, notice: row.notice||'',
     isPublic: !!row.is_public,
+    isLive: !!row.is_live,  // サーバーが計算した公開状態
   };
 }
 
@@ -246,18 +247,21 @@ function renderViewer(cfg) {
 
 function updateStreamStatus(cfg) {
   cfg = cfg || {};
-  const now = new Date();
+  const now   = new Date();
   const start = cfg.startTime ? new Date(cfg.startTime) : null;
   const end   = cfg.endTime   ? new Date(cfg.endTime)   : null;
   const banner = document.getElementById('statusBanner');
   const dot    = document.getElementById('liveDot');
 
-  let isLive = false, phase = 'none';
-  if (cfg.isPublic) { isLive = true; phase = 'live'; }
-  else if (start && end) {
-    if (now < start)     phase = 'waiting';
-    else if (now <= end) { phase = 'live'; isLive = true; }
-    else                 phase = 'ended';
+  // サーバーが計算した isLive を優先、なければフロントで計算
+  const isLive = cfg.isLive;
+  let phase = 'none';
+  if (cfg.isPublic) {
+    phase = 'live';
+  } else if (start && end) {
+    if (now < start)  phase = 'waiting';
+    else if (isLive)  phase = 'live';
+    else              phase = 'ended';
   }
 
   if (phase === 'none') { banner.style.display = 'none'; }
@@ -309,7 +313,7 @@ async function refreshStream() {
 
 setInterval(async () => {
   try { cachedConfig = normalizeConfig(await (await apiFetch('/api/config')).json()); updateStreamStatus(cachedConfig); } catch(e) {}
-}, 60000);
+}, 30000);
 
 window.addEventListener('load', init);
 </script>

@@ -512,8 +512,12 @@ async function togglePublic() {
   try {
     const res  = await apiFetch('/api/admin/toggle-public', { adminPass, isPublic: newState });
     const json = await res.json();
-    if (json.ok) { cachedConfig.isPublic = newState; setToggleBtn(newState); }
-    else setToggleBtn(cachedConfig.isPublic);
+    if (json.ok) {
+      cachedConfig.isPublic = json.isPublic;
+      setToggleBtn(json.isPublic);
+    } else {
+      setToggleBtn(cachedConfig.isPublic);
+    }
   } catch(e) { setToggleBtn(cachedConfig.isPublic); }
 }
 
