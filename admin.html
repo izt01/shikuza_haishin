@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理者画面</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: #f4f2ee;
+    color: #1a1a1e;
+    min-height: 100vh;
+  }
+
+  /* ===== 認証画面 ===== */
+  #authPage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .auth-card {
+    background: #fff;
+    border: 1px solid #e0ddd8;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  .auth-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .auth-sub {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 28px;
+  }
+
+  /* ===== 管理画面 ===== */
+  #adminPage { display: none; }
+
+  .admin-header {
+    background: #fff;
+    border-bottom: 1px solid #e8e5e0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .admin-header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-header-title i { color: #c9a84c; font-size: 20px; }
+
+  .header-save-btn {
+    padding: 9px 22px;
+    background: #c9a84c;
+    border: none;
+    border-radius: 8px;
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .header-save-btn:hover { background: #e8c96d; }
+
+  .admin-body {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ===== カード ===== */
+  .card {
+    background: #fff;
+    border: 1px solid #e8e5e0;
+    border-radius: 14px;
+    padding: 24px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #aaa;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  /* ===== 即時公開トグル ===== */
+  .pub-toggle-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .pub-toggle-label { font-size: 15px; font-weight: 500; color: #1a1a1e; }
+  .pub-toggle-sub   { font-size: 12px; color: #999; margin-top: 3px; }
+
+  .toggle-btn {
+    min-width: 96px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .toggle-btn.on  { background: #52c47a; color: #fff; }
+  .toggle-btn.off { background: #e8e5e0; color: #666; }
+  .toggle-btn.on:hover  { background: #3db368; }
+  .toggle-btn.off:hover { background: #dedad4; }
+
+  /* ===== フォーム ===== */
+  .field-group { margin-bottom: 14px; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .field-label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 5px;
+    display: block;
+    line-height: 1.5;
+  }
+
+  .field-input {
+    width: 100%;
+    background: #f8f7f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #1a1a1e;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field-input:focus { border-color: #c9a84c; background: #fff; }
+  .field-input::placeholder { color: #bbb; }
+
+  textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  .date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: #f8f7f5;
+    border: 1px solid #e8e5e0;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #c9a84c; cursor: pointer; flex-shrink: 0; }
+  .toggle-row-text { font-size: 14px; color: #1a1a1e; }
+
+  .sub-field { margin-top: 8px; padding-left: 12px; border-left: 2px solid rgba(201,168,76,0.4); display: none; }
+  .sub-field.visible { display: block; }
+
+  /* ===== 統計 ===== */
+  .stats-count-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .stats-count-num { font-size: 40px; font-weight: 700; color: #c9a84c; line-height: 1; }
+  .stats-count-unit { font-size: 13px; color: #aaa; }
+
+  .stats-names { display: flex; flex-wrap: wrap; gap: 6px; max-height: 130px; overflow-y: auto; }
+
+  .name-tag { background: #f8f7f5; border: 1px solid #ddd; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #444; }
+
+  .stats-load-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #888;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .stats-load-btn:hover { background: #f0ede8; border-color: #c9a84c; color: #c9a84c; }
+
+  /* ===== 汎用 ===== */
+  .error-msg { font-size: 12px; color: #e05252; margin-top: 6px; display: none; }
+  .error-msg.show { display: block; }
+
+  .save-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1a1e;
+    color: #e8c96d;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .save-toast.show { transform: translateX(-50%) translateY(0); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: #c9a84c;
+    border: none;
+    border-radius: 8px;
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover { background: #e8c96d; }
+
+  @media (max-width: 500px) {
+    .admin-header { padding: 14px 20px; }
+    .admin-body   { padding: 20px 16px 60px; }
+    .card         { padding: 20px 18px; }
+    .date-grid    { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 認証画面 ===== -->
+<div id="authPage">
+  <div class="auth-card">
+    <div class="auth-title"><i class="ti ti-shield-lock"></i> 管理者認証</div>
+    <div class="auth-sub">管理者パスワードを入力してください</div>
+    <div class="field-group">
+      <label class="field-label">パスワード</label>
+      <input class="field-input" id="authPass" type="password" placeholder="管理者パスワード"
+             onkeydown="if(event.key==='Enter') submitAuth()" />
+      <div class="error-msg" id="authError">パスワードが正しくありません</div>
+    </div>
+    <button class="btn-primary" onclick="submitAuth()">ログイン</button>
+  </div>
+</div>
+
+<!-- ===== 管理画面 ===== -->
+<div id="adminPage">
+
+  <div class="admin-header">
+    <div class="admin-header-title">
+      <i class="ti ti-settings"></i> 管理者設定
+    </div>
+    <button class="header-save-btn" id="headerSaveBtn" onclick="saveAdmin()">保存する</button>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- 即時公開 -->
+    <div class="card">
+      <div class="card-title">即時公開コントロール</div>
+      <div class="pub-toggle-wrap">
+        <div>
+          <div class="pub-toggle-label">公開 ON / OFF</div>
+          <div class="pub-toggle-sub">ONにすると期間に関わらず即時公開されます</div>
+        </div>
+        <button class="toggle-btn off" id="togglePublicBtn" onclick="togglePublic()">OFF</button>
+      </div>
+    </div>
+
+    <!-- ログイン統計 -->
+    <div class="card">
+      <div class="card-title">ログイン統計（今回の期間）</div>
+      <button class="stats-load-btn" onclick="loadStats()">
+        <i class="ti ti-refresh"></i> データを取得
+      </button>
+      <div id="statsContent" style="display:none">
+        <div class="stats-count-row">
+          <span class="stats-count-num" id="statsCount">0</span>
+          <span class="stats-count-unit">ログイン数</span>
+        </div>
+        <div class="stats-names" id="statsNames"></div>
+      </div>
+      <div id="statsEmpty" style="display:none;font-size:13px;color:#aaa">データがありません</div>
+    </div>
+
+    <!-- 配信情報 -->
+    <div class="card">
+      <div class="card-title">配信情報</div>
+      <div class="field-group">
+        <label class="field-label">配信タイトル</label>
+        <input class="field-input" id="adminTitle" type="text" placeholder="例：月例トーク #12" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">YouTube 動画URL（youtu.be/xxxxx または watch?v=xxxxx）</label>
+        <input class="field-input" id="adminYtUrl" type="text" placeholder="https://youtu.be/..." />
+      </div>
+    </div>
+
+    <!-- 今回の公開期間 -->
+    <div class="card">
+      <div class="card-title">今回の公開期間（日本時間）</div>
+      <div class="date-grid">
+        <div class="field-group">
+          <label class="field-label">開始日時</label>
+          <input class="field-input" id="adminStart" type="datetime-local" step="1" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">終了日時</label>
+          <input class="field-input" id="adminEnd" type="datetime-local" step="1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 次回の公開期間 -->
+    <div class="card">
+      <div class="card-title">次回の公開期間（任意）</div>
+      <div class="date-grid">
+        <div class="field-group">
+          <label class="field-label">開始日時</label>
+          <input class="field-input" id="adminNextStart" type="datetime-local" step="1" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">終了日時</label>
+          <input class="field-input" id="adminNextEnd" type="datetime-local" step="1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- アクセス制限 -->
+    <div class="card">
+      <div class="card-title">アクセス制限</div>
+      <div class="field-group">
+        <label class="toggle-row">
+          <input type="checkbox" id="adminPassEnabled" onchange="toggleSub('adminPassEnabled','adminPassSub')">
+          <span class="toggle-row-text">パスワードを設定する</span>
+        </label>
+        <div class="sub-field" id="adminPassSub">
+          <input class="field-input" id="adminViewPass" type="text" placeholder="視聴者用パスワード" style="margin-top:8px" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="toggle-row">
+          <input type="checkbox" id="adminNameEnabled" onchange="toggleSub('adminNameEnabled','adminNameSub')">
+          <span class="toggle-row-text">名前入力欄を表示する</span>
+        </label>
+        <div class="sub-field" id="adminNameSub">
+          <p style="font-size:12px;color:#aaa;padding-top:8px">入室時にお名前を入力させます（記録はされません）</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- お知らせ -->
+    <div class="card">
+      <div class="card-title">お知らせ（任意）</div>
+      <textarea class="field-input" id="adminNotice" placeholder="注意事項や連絡事項など…" rows="3"></textarea>
+    </div>
+
+    <!-- 管理者パスワード変更 -->
+    <div class="card">
+      <div class="card-title">管理者パスワード変更（任意）</div>
+      <input class="field-input" id="adminNewPass" type="password" placeholder="新しいパスワード（変更する場合のみ）" />
+    </div>
+
+  </div><!-- /admin-body -->
+</div><!-- /adminPage -->
+
+<!-- 保存トースト -->
+<div class="save-toast" id="saveToast">✓ 設定を保存しました</div>
+
+<script>
+// ★ RailwayにデプロイしたAPIのURLをここに設定してください ★
+const API_BASE = 'YOUR_RAILWAY_API_URL';
+
+let adminPass = '';
+let cachedConfig = null;
+
+async function apiFetch(path, body) {
+  return fetch(API_BASE + path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+/* ---- 認証 ---- */
+async function submitAuth() {
+  const pass = document.getElementById('authPass').value;
+  const errEl = document.getElementById('authError');
+  errEl.classList.remove('show');
+  try {
+    const res  = await apiFetch('/api/admin/get', { adminPass: pass });
+    const json = await res.json();
+    if (res.status === 401) { errEl.textContent = json.error || 'パスワードが正しくありません'; errEl.classList.add('show'); return; }
+    adminPass = pass;
+    cachedConfig = normalizeConfig(json);
+    showAdminPage(cachedConfig);
+  } catch(e) {
+    errEl.textContent = '通信エラーが発生しました'; errEl.classList.add('show');
+  }
+}
+
+function normalizeConfig(row) {
+  return {
+    title: row.title||'', ytUrl: row.yt_url||'',
+    startTime: row.start_time||null, endTime: row.end_time||null,
+    nextStart: row.next_start||null, nextEnd: row.next_end||null,
+    passEnabled: !!row.pass_enabled, viewPass: row.view_pass||'',
+    nameEnabled: !!row.name_enabled, notice: row.notice||'',
+    isPublic: !!row.is_public,
+  };
+}
+
+/* ---- 管理画面表示 ---- */
+function showAdminPage(cfg) {
+  document.getElementById('authPage').style.display = 'none';
+  document.getElementById('adminPage').style.display = 'block';
+  fillForm(cfg);
+}
+
+function fillForm(cfg) {
+  document.getElementById('adminTitle').value         = cfg.title || '';
+  document.getElementById('adminYtUrl').value         = cfg.ytUrl || '';
+  document.getElementById('adminStart').value         = toLocalInput(cfg.startTime);
+  document.getElementById('adminEnd').value           = toLocalInput(cfg.endTime);
+  document.getElementById('adminNextStart').value     = toLocalInput(cfg.nextStart);
+  document.getElementById('adminNextEnd').value       = toLocalInput(cfg.nextEnd);
+  document.getElementById('adminPassEnabled').checked = cfg.passEnabled;
+  document.getElementById('adminViewPass').value      = cfg.viewPass || '';
+  document.getElementById('adminNameEnabled').checked = cfg.nameEnabled;
+  document.getElementById('adminNotice').value        = cfg.notice || '';
+  document.getElementById('adminNewPass').value       = '';
+  toggleSub('adminPassEnabled', 'adminPassSub');
+  toggleSub('adminNameEnabled', 'adminNameSub');
+  setToggleBtn(cfg.isPublic);
+}
+
+/* ---- 日時変換 ---- */
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const pad = n => String(n).padStart(2,'0');
+  const jst = new Date(new Date(iso).getTime() + 9*3600*1000);
+  return `${jst.getUTCFullYear()}-${pad(jst.getUTCMonth()+1)}-${pad(jst.getUTCDate())}T${pad(jst.getUTCHours())}:${pad(jst.getUTCMinutes())}:${pad(jst.getUTCSeconds())}`;
+}
+function fromLocalInput(val) {
+  if (!val) return null;
+  const base = val.length === 16 ? val + ':00' : val;
+  return new Date(base + '+09:00').toISOString();
+}
+
+/* ---- サブフィールド ---- */
+function toggleSub(checkId, subId) {
+  document.getElementById(subId).classList.toggle('visible', document.getElementById(checkId).checked);
+}
+
+/* ---- 即時ON/OFF ---- */
+function setToggleBtn(isPublic) {
+  const btn = document.getElementById('togglePublicBtn');
+  if (isPublic) { btn.textContent = '公開中 ON'; btn.className = 'toggle-btn on'; }
+  else          { btn.textContent = 'OFF';       btn.className = 'toggle-btn off'; }
+}
+
+async function togglePublic() {
+  const newState = !cachedConfig.isPublic;
+  const btn = document.getElementById('togglePublicBtn');
+  btn.textContent = '更新中...'; btn.className = 'toggle-btn off';
+  try {
+    const res  = await apiFetch('/api/admin/toggle-public', { adminPass, isPublic: newState });
+    const json = await res.json();
+    if (json.ok) { cachedConfig.isPublic = newState; setToggleBtn(newState); }
+    else setToggleBtn(cachedConfig.isPublic);
+  } catch(e) { setToggleBtn(cachedConfig.isPublic); }
+}
+
+/* ---- 保存 ---- */
+async function saveAdmin() {
+  const btn = document.getElementById('headerSaveBtn');
+  btn.textContent = '保存中...';
+
+  const payload = {
+    adminPass,
+    title:       document.getElementById('adminTitle').value.trim(),
+    ytUrl:       document.getElementById('adminYtUrl').value.trim(),
+    startTime:   fromLocalInput(document.getElementById('adminStart').value),
+    endTime:     fromLocalInput(document.getElementById('adminEnd').value),
+    nextStart:   fromLocalInput(document.getElementById('adminNextStart').value),
+    nextEnd:     fromLocalInput(document.getElementById('adminNextEnd').value),
+    passEnabled: document.getElementById('adminPassEnabled').checked,
+    viewPass:    document.getElementById('adminViewPass').value,
+    nameEnabled: document.getElementById('adminNameEnabled').checked,
+    notice:      document.getElementById('adminNotice').value.trim(),
+    newAdminPass: document.getElementById('adminNewPass').value,
+    isPublic:    cachedConfig.isPublic,
+  };
+
+  try {
+    const res  = await apiFetch('/api/admin/save', payload);
+    const json = await res.json();
+    if (json.ok) {
+      if (payload.newAdminPass) adminPass = payload.newAdminPass;
+      cachedConfig = normalizeConfig({ ...payload, yt_url: payload.ytUrl, start_time: payload.startTime, end_time: payload.endTime, next_start: payload.nextStart, next_end: payload.nextEnd, pass_enabled: payload.passEnabled, view_pass: payload.viewPass, name_enabled: payload.nameEnabled, is_public: payload.isPublic });
+      showToast('✓ 設定を保存しました');
+    } else {
+      showToast('⚠ ' + (json.error || '保存に失敗しました'), true);
+    }
+  } catch(e) {
+    showToast('⚠ 通信エラーが発生しました', true);
+  }
+  btn.textContent = '保存する';
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('saveToast');
+  t.textContent = msg;
+  t.style.background = isError ? '#e05252' : '#1a1a1e';
+  t.style.color = isError ? '#fff' : '#e8c96d';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ---- 統計 ---- */
+async function loadStats() {
+  const contentEl = document.getElementById('statsContent');
+  const emptyEl   = document.getElementById('statsEmpty');
+  contentEl.style.display = 'none';
+  emptyEl.style.display   = 'none';
+  try {
+    const res  = await apiFetch('/api/admin/stats', { adminPass, startTime: cachedConfig.startTime, endTime: cachedConfig.endTime });
+    const json = await res.json();
+    if (!json.logs || json.logs.length === 0) { emptyEl.style.display = 'block'; return; }
+    document.getElementById('statsCount').textContent = json.total;
+    const namesEl = document.getElementById('statsNames');
+    namesEl.innerHTML = '';
+    const names = [...new Set(json.logs.map(l => l.name).filter(Boolean))];
+    if (names.length > 0) {
+      names.forEach(n => { const t = document.createElement('span'); t.className = 'name-tag'; t.textContent = n; namesEl.appendChild(t); });
+    } else {
+      namesEl.innerHTML = '<span style="font-size:12px;color:#aaa">名前の記録なし</span>';
+    }
+    contentEl.style.display = 'block';
+  } catch(e) { emptyEl.textContent = '取得エラー'; emptyEl.style.display = 'block'; }
+}
+</script>
+</body>
+</html>
