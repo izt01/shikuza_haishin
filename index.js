@@ -19,13 +19,7 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-const express = require('express');
-const cors    = require('cors');
-const { Pool } = require('pg');
-
-const app  = express();
-const port = process.env.PORT || 3000;
-
+// DB 接続
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
