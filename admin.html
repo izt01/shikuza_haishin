@@ -225,6 +225,23 @@
 
   .stats-load-btn:hover { background: #f0ede8; border-color: #c9a84c; color: #c9a84c; }
 
+  /* セッション選択 */
+  .session-select {
+    width: 100%;
+    background: #f8f7f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: #1a1a1e;
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .session-select:focus { border-color: #c9a84c; }
+
   /* ===== 汎用 ===== */
   .error-msg { font-size: 12px; color: #e05252; margin-top: 6px; display: none; }
   .error-msg.show { display: block; }
@@ -315,18 +332,23 @@
 
     <!-- ログイン統計 -->
     <div class="card">
-      <div class="card-title">ログイン統計（今回の期間）</div>
-      <button class="stats-load-btn" onclick="loadStats()">
-        <i class="ti ti-refresh"></i> データを取得
+      <div class="card-title">ログイン統計</div>
+      <button class="stats-load-btn" onclick="loadSessions()">
+        <i class="ti ti-refresh"></i> 期間一覧を取得
       </button>
-      <div id="statsContent" style="display:none">
-        <div class="stats-count-row">
-          <span class="stats-count-num" id="statsCount">0</span>
-          <span class="stats-count-unit">ログイン数</span>
+      <div id="sessionSelectWrap" style="display:none">
+        <select class="session-select" id="sessionSelect" onchange="loadSessionStats()">
+          <option value="">― 期間を選択 ―</option>
+        </select>
+        <div id="statsContent" style="display:none">
+          <div class="stats-count-row">
+            <span class="stats-count-num" id="statsCount">0</span>
+            <span class="stats-count-unit">ログイン数</span>
+          </div>
+          <div class="stats-names" id="statsNames"></div>
         </div>
-        <div class="stats-names" id="statsNames"></div>
+        <div id="statsEmpty" style="display:none;font-size:13px;color:#aaa">データがありません</div>
       </div>
-      <div id="statsEmpty" style="display:none;font-size:13px;color:#aaa">データがありません</div>
     </div>
 
     <!-- 配信情報 -->
@@ -453,6 +475,7 @@ function normalizeConfig(row) {
     passEnabled: !!row.pass_enabled, viewPass: row.view_pass||'',
     nameEnabled: !!row.name_enabled, notice: row.notice||'',
     isPublic: !!row.is_public,
+    currentSessionId: row.current_session_id || null,
   };
 }
 
@@ -567,27 +590,79 @@ function showToast(msg, isError) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-/* ---- 統計 ---- */
-async function loadStats() {
+/* ---- 統計：セッション一覧取得 ---- */
+async function loadSessions() {
+  const wrap = document.getElementById('sessionSelectWrap');
+  const sel  = document.getElementById('sessionSelect');
+  wrap.style.display = 'none';
+  try {
+    const res  = await apiFetch('/api/admin/sessions', { adminPass });
+    const json = await res.json();
+    sel.innerHTML = '<option value="">― 期間を選択 ―</option>';
+    if (!json.sessions || json.sessions.length === 0) {
+      sel.innerHTML += '<option disabled>データがありません</option>';
+    } else {
+      json.sessions.forEach(s => {
+        const label = formatSessionLabel(s);
+        const opt   = document.createElement('option');
+        opt.value       = s.id;
+        opt.textContent = label;
+        // 現在のセッションを先頭に「今回」表示
+        if (String(s.id) === String(cachedConfig.currentSessionId)) {
+          opt.textContent = '【今回】' + label;
+        }
+        sel.appendChild(opt);
+      });
+    }
+    wrap.style.display = 'block';
+    document.getElementById('statsContent').style.display = 'none';
+    document.getElementById('statsEmpty').style.display   = 'none';
+  } catch(e) {
+    showToast('⚠ セッション取得エラー', true);
+  }
+}
+
+function formatSessionLabel(s) {
+  const fmt = iso => iso ? new Date(iso).toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Tokyo' }) : '?';
+  const title = s.title ? `「${s.title}」 ` : '';
+  return `${title}${fmt(s.start_time)} 〜 ${fmt(s.end_time)}（${s.login_count}人）`;
+}
+
+async function loadSessionStats() {
+  const sessionId = document.getElementById('sessionSelect').value;
   const contentEl = document.getElementById('statsContent');
   const emptyEl   = document.getElementById('statsEmpty');
   contentEl.style.display = 'none';
   emptyEl.style.display   = 'none';
+  if (!sessionId) return;
+
   try {
-    const res  = await apiFetch('/api/admin/stats', { adminPass, startTime: cachedConfig.startTime, endTime: cachedConfig.endTime });
+    const res  = await apiFetch('/api/admin/session-stats', { adminPass, sessionId: parseInt(sessionId) });
     const json = await res.json();
-    if (!json.logs || json.logs.length === 0) { emptyEl.style.display = 'block'; return; }
+    if (!json.logs || json.logs.length === 0) {
+      emptyEl.textContent = 'この期間のログインデータがありません';
+      emptyEl.style.display = 'block';
+      return;
+    }
     document.getElementById('statsCount').textContent = json.total;
     const namesEl = document.getElementById('statsNames');
     namesEl.innerHTML = '';
     const names = [...new Set(json.logs.map(l => l.name).filter(Boolean))];
     if (names.length > 0) {
-      names.forEach(n => { const t = document.createElement('span'); t.className = 'name-tag'; t.textContent = n; namesEl.appendChild(t); });
+      names.forEach(n => {
+        const t = document.createElement('span');
+        t.className = 'name-tag';
+        t.textContent = n;
+        namesEl.appendChild(t);
+      });
     } else {
       namesEl.innerHTML = '<span style="font-size:12px;color:#aaa">名前の記録なし</span>';
     }
     contentEl.style.display = 'block';
-  } catch(e) { emptyEl.textContent = '取得エラー'; emptyEl.style.display = 'block'; }
+  } catch(e) {
+    emptyEl.textContent = '取得エラー';
+    emptyEl.style.display = 'block';
+  }
 }
 </script>
 </body>
