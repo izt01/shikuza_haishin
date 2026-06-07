@@ -1,3 +1,18 @@
+const path = require('path');
+
+// 静的ファイル配信（index.html, admin.html, CSS, JS など）
+app.use(express.static(path.join(__dirname)));
+
+// ルートで index.html を返す
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// 管理画面用のルート（必要なら）
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 const express = require('express');
 const cors    = require('cors');
 const { Pool } = require('pg');
