@@ -144,7 +144,7 @@
 
 <script>
 // ★ RailwayにデプロイしたAPIのURLをここに設定してください ★
-const API_BASE = 'https://shikuzahaishin-production.up.railway.app';
+const API_BASE = 'YOUR_RAILWAY_API_URL';
 
 let viewerLoggedIn = false;
 let cachedConfig = null;
@@ -206,13 +206,28 @@ function showLoginModal(cfg) {
 async function submitLogin() {
   const err = document.getElementById('loginError');
   err.classList.remove('show');
+
+  // 名前入力が必須のときは空欄チェック
+  if (cachedConfig.nameEnabled) {
+    const name = document.getElementById('loginName').value.trim();
+    if (!name) {
+      err.textContent = 'お名前を入力してください';
+      err.classList.add('show');
+      return;
+    }
+  }
+
   try {
     const res = await apiFetch('/api/auth', {
       password: document.getElementById('loginPass').value,
-      name: document.getElementById('loginName').value,
+      name: document.getElementById('loginName').value.trim(),
     });
     const json = await res.json();
-    if (!json.ok) { err.classList.add('show'); return; }
+    if (!json.ok) {
+      err.textContent = 'パスワードが正しくありません';
+      err.classList.add('show');
+      return;
+    }
   } catch(e) { err.textContent = '通信エラーが発生しました'; err.classList.add('show'); return; }
   viewerLoggedIn = true;
   document.getElementById('loginOverlay').classList.remove('open');
