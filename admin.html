@@ -437,7 +437,7 @@
 
 <script>
 // ★ RailwayにデプロイしたAPIのURLをここに設定してください ★
-const API_BASE = 'https://shikuzahaishin-production.up.railway.app';
+const API_BASE = 'YOUR_RAILWAY_API_URL';
 
 let adminPass = '';
 let cachedConfig = null;
@@ -475,7 +475,9 @@ function normalizeConfig(row) {
     passEnabled: !!row.pass_enabled, viewPass: row.view_pass||'',
     nameEnabled: !!row.name_enabled, notice: row.notice||'',
     isPublic: !!row.is_public,
+    isLive: !!row.is_live,
     currentSessionId: row.current_session_id || null,
+    serverNow: row.server_now || null,
   };
 }
 
@@ -484,6 +486,24 @@ function showAdminPage(cfg) {
   document.getElementById('authPage').style.display = 'none';
   document.getElementById('adminPage').style.display = 'block';
   fillForm(cfg);
+  // サーバー時刻デバッグ表示
+  if (cfg.serverNow) {
+    const fmtJST = iso => new Date(iso).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    const info = [
+      `サーバー現在時刻: ${fmtJST(cfg.serverNow)}`,
+      cfg.startTime ? `開始: ${fmtJST(cfg.startTime)}` : '開始: 未設定',
+      cfg.endTime   ? `終了: ${fmtJST(cfg.endTime)}`   : '終了: 未設定',
+      `公開中(is_live): ${cfg.isLive}`,
+    ].join(' ／ ');
+    let dbg = document.getElementById('debugInfo');
+    if (!dbg) {
+      dbg = document.createElement('div');
+      dbg.id = 'debugInfo';
+      dbg.style.cssText = 'font-size:11px;color:#aaa;padding:8px 12px;background:#f8f7f5;border-radius:8px;margin-bottom:8px;line-height:1.6;word-break:break-all';
+      document.querySelector('.admin-body').prepend(dbg);
+    }
+    dbg.textContent = info;
+  }
 }
 
 function fillForm(cfg) {
